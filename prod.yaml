@@ -1,52 +1,104 @@
-version: "2.1"
+version: "3.1"
 services:
     odoo:
-        extends:
-            file: common.yaml
-            service: odoo
         build:
+            context: ./odoo
             args:
+                PGUSER: "$DB_USER"
+                PGPASSWORD: "$DB_PASSWORD"
                 ADMIN_PASSWORD: "$ODOO_ADMIN_PASSWORD"
                 PROXY_MODE: "$ODOO_PROXY_MODE"
-        restart: unless-stopped
+        tty: true
+        volumes:
+            - filestore$ODOO_MAJOR:/var/lib/odoo
+        networks:
+            default:
+            shared-proxy:
+        deploy:
+            restart_policy:
+                condition: on-failure
+                max_attempts: $RESTART_ATTEMPTS
+                window: $RESTART_WINDOW
+            labels:
+                traefik.backend.loadbalancer.sticky: "true"
+                traefik.port: "8069"
+                traefik.frontend.rule: "Host:server-007.tecnativa.net"
+                traefik.frontend.passHostHeader: "true"
         depends_on:
             - db
             - smtp
             - inbox
 
     db:
-        extends:
-            file: common.yaml
-            service: db
-        restart: unless-stopped
-
-    https:
-        extends:
-            file: common.yaml
-            service: https
-        restart: unless-stopped
+        image: postgres:${DB_VERSION}-alpine
         environment:
-            STAGING: "false"
-        depends_on:
-            - odoo
+            POSTGRES_USER: "$DB_USER"
+            POSTGRES_PASSWORD: "$DB_PASSWORD"
+        volumes:
+            - db$ODOO_MAJOR:/var/lib/postgresql/data
+        deploy:
+            restart_policy:
+                condition: on-failure
+                max_attempts: $RESTART_ATTEMPTS
+                window: $RESTART_WINDOW
 
     inbox:
-        extends:
-            file: common.yaml
-            service: inboxreal
-        restart: unless-stopped
+        image: tecnativa/tcp-proxy
+        environment:
+            LISTEN: "$INBOX_REAL_LISTEN"
+            TALK: "$INBOX_REAL_TALK"
+        deploy:
+            restart_policy:
+                condition: on-failure
+                max_attempts: $RESTART_ATTEMPTS
+                window: $RESTART_WINDOW
 
     smtp:
-        extends:
-            file: common.yaml
-            service: smtpreal
-        restart: unless-stopped
+        image: tecnativa/postfix-relay
+        volumes:
+            - smtp:/var/spool/postfix
+        environment:
+            MAILNAME: "$SMTP_REAL_MAILNAME"
+            MAIL_RELAY_HOST: "$SMTP_REAL_RELAY_HOST"
+            MAIL_RELAY_PORT: "$SMTP_REAL_RELAY_PORT"
+            MAIL_RELAY_USER: "$SMTP_REAL_RELAY_USER"
+            MAIL_RELAY_PASS: "$SMTP_REAL_RELAY_PASS"
+            MAIL_CANONICAL_DOMAINS: "$SMTP_REAL_CANONICAL_DOMAINS"
+            MAIL_NON_CANONICAL_DEFAULT: "$SMTP_REAL_NON_CANONICAL_DEFAULT"
+        deploy:
+            restart_policy:
+                condition: on-failure
+                max_attempts: $RESTART_ATTEMPTS
+                window: $RESTART_WINDOW
 
     backup:
-        extends:
-            file: common.yaml
-            service: backup
-        restart: unless-stopped
+        image: tecnativa/server-backup
+        environment:
+            MAIL_RELAY_HOST: smtp
+            ROOT_EMAIL_FROM: "$BACKUP_ROOT_EMAIL_FROM"
+            ROOT_EMAIL_TO: "$BACKUP_ROOT_EMAIL_TO"
+            BACKUP_S3_ACCESS_KEY: "$BACKUP_S3_ACCESS_KEY"
+            BACKUP_S3_SECRET_KEY: "$BACKUP_S3_SECRET_KEY"
+            BACKUP_S3_BUCKET: "$BACKUP_S3_BUCKET"
+            BACKUP_S3_INSTANCE: "$BACKUP_S3_INSTANCE"
+            BACKUP_SEND_MAIL_ERR: "$BACKUP_SEND_MAIL_ERR"
+            BACKUP_SEND_MAIL_LOG: "$BACKUP_SEND_MAIL_LOG"
+            BACKUP_EMAIL_SUBJECT: "$BACKUP_EMAIL_SUBJECT"
+            BACKUP_EMAIL_FROM: "$BACKUP_EMAIL_FROM"
+            BACKUP_EMAIL_TO: "$BACKUP_EMAIL_TO"
+            BACKUP_ENCRYPT: "$BACKUP_ENCRYPT"
+            BACKUP_ENCRYPT_KEY: "$BACKUP_ENCRYPT_KEY"
+            BACKUP_SOURCES: /var/lib/odoo,0,1
+            PG_HOST: db
+            PG_USER: "$DB_USER"
+            PG_PASS: "$DB_PASSWORD"
+        volumes:
+            - filestore$ODOO_MAJOR:/var/lib/odoo
+        deploy:
+            restart_policy:
+                condition: on-failure
+                max_attempts: $RESTART_ATTEMPTS
+                window: $RESTART_WINDOW
         depends_on:
             - db
             - smtp
@@ -58,3 +110,8 @@ volumes:
     smtp:
     certs:
     certscron:
+
+networks:
+    # XXX Your Docker Swarm should have a network named like this
+    shared-proxy:
+        external: true

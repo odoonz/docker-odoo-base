@@ -1,40 +1,43 @@
-version: "2.1"
+version: "3.1"
 services:
     odoo:
-        extends:
-            file: common.yaml
-            service: odoo
         build:
+            context: ./odoo
             args:
+                PGUSER: "$DB_USER"
+                PGPASSWORD: "$DB_PASSWORD"
                 PGDATABASE: test
                 # You may want demo data for testing
                 WITHOUT_DEMO: "false"
+        tty: true
+        volumes:
+            - filestore$ODOO_MAJOR:/var/lib/odoo
+        networks:
+            default:
+                aliases:
+                    # For `https` service
+                    - www
         depends_on:
             - db
             - smtp
             - inbox
 
     db:
-        extends:
-            file: common.yaml
-            service: db
-
-    https:
-        extends:
-            file: common.yaml
-            service: https
-        depends_on:
-            - odoo
+        image: postgres:${DB_VERSION}-alpine
+        environment:
+            POSTGRES_USER: "$DB_USER"
+            POSTGRES_PASSWORD: "$DB_PASSWORD"
+        volumes:
+            - db$ODOO_MAJOR:/var/lib/postgresql/data
 
     inbox:
-        extends:
-            file: common.yaml
-            service: inboxfake
+        image: tecnativa/tcp-proxy
+        environment:
+            LISTEN: "$INBOX_FAKE_LISTEN"
+            TALK: "$INBOX_FAKE_TALK"
 
     smtp:
-        extends:
-            file: common.yaml
-            service: smtpfake
+        image: tecnativa/smtp-sink
 
 volumes:
     # XXX Odoo volume names must match $ODOO_MAJOR for quick branch switching
