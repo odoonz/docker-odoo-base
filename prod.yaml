@@ -1,5 +1,23 @@
 version: "3.1"
 services:
+    proxy:
+        image: tecnativa/odoo-proxy
+        networks:
+            default:
+            infrastructure_shared:
+        deploy:
+            restart_policy:
+                condition: on-failure
+                max_attempts: $RESTART_ATTEMPTS
+                window: $RESTART_WINDOW
+            labels:
+                traefik.backend.loadbalancer.sticky: "true"
+                traefik.backend.loadbalancer.swarm: "true"
+                traefik.docker.network: "infrastructure_shared"
+                traefik.enable: "true"
+                traefik.frontend.rule: "Host:server-007.tecnativa.net"
+                traefik.frontend.passHostHeader: "true"
+
     odoo:
         build:
             context: ./odoo
@@ -13,17 +31,11 @@ services:
             - filestore$ODOO_MAJOR:/var/lib/odoo
         networks:
             default:
-            shared-proxy:
         deploy:
             restart_policy:
                 condition: on-failure
                 max_attempts: $RESTART_ATTEMPTS
                 window: $RESTART_WINDOW
-            labels:
-                traefik.backend.loadbalancer.sticky: "true"
-                traefik.port: "8069"
-                traefik.frontend.rule: "Host:server-007.tecnativa.net"
-                traefik.frontend.passHostHeader: "true"
         depends_on:
             - db
             - smtp
@@ -113,5 +125,5 @@ volumes:
 
 networks:
     # XXX Your Docker Swarm should have a network named like this
-    shared-proxy:
+    infrastructure_shared:
         external: true

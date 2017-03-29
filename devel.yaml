@@ -18,11 +18,6 @@ services:
                 # You want demo data for development
                 WITHOUT_DEMO: "false"
         tty: true
-        networks:
-            default:
-                aliases:
-                    # For `https` service
-                    - www
         ports:
             - "127.0.0.1:${ODOO_MAJOR}069:8069"
             - "127.0.0.1:${ODOO_MAJOR}072:8072"
