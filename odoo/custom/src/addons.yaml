@@ -1,0 +1,13 @@
+# Defaults for all builds
+web:
+  - "*"
+
+mis-builder:
+  - "mis_builder"
+  - "mis_builder_budget"
+
+social:
+  - "mail_debrand"
+  - "email_template_qweb"
+
+# End defaults

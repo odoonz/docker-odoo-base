@@ -1,3 +1,4 @@
+# Defaults for all builds
 # Odoo is always required
 ./odoo:
     defaults:
@@ -10,19 +11,41 @@
         odoo: https://github.com/odoo/odoo.git
         openupgrade: https://github.com/OCA/OpenUpgrade.git
     target:
-        ocb $ODOO_VERSION
+        odoo $ODOO_VERSION
     merges:
-        - ocb $ODOO_VERSION
+        - odoo $ODOO_VERSION
         # Example of a merge of the PR with the number <PR>
         # - oca refs/pull/<PR>/head
 
 # Example of an OCA repository
-./l10n-spain:
+./web:
     defaults:
         depth: $DEPTH_DEFAULT
     remotes:
-        oca: https://github.com/OCA/l10n-spain.git
+        oca: https://github.com/OCA/web.git
     target:
         oca $ODOO_VERSION
     merges:
         - oca $ODOO_VERSION
+
+./mis-bulder:
+    defaults:
+        depth: $DEPTH_DEFAULT
+    remotes:
+        oca: https://github.com/OCA/mis-builder.git
+    target:
+        oca $ODOO_VERSION
+    merges:
+        - oca $ODOO_VERSION
+
+./social:
+    defaults:
+        depth: $DEPTH_DEFAULT
+    remotes:
+        oca: https://github.com/OCA/social.git
+    target:
+        oca $ODOO_VERSION
+    merges:
+        - oca $ODOO_VERSION
+
+# End Defaults
