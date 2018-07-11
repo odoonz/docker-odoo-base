@@ -2,7 +2,7 @@
 web:
   - "*"
 
-mis-builder:
+mis:
   - "mis_builder"
   - "mis_builder_budget"
 

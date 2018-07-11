@@ -28,7 +28,7 @@
     merges:
         - oca $ODOO_VERSION
 
-./mis-bulder:
+./mis:
     defaults:
         depth: $DEPTH_DEFAULT
     remotes:
